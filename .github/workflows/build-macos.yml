@@ -1,0 +1,39 @@
+name: Build macOS app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gui.py"
+      - "main.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/build-macos.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    # macos-14 runners are Apple Silicon (arm64)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Build app bundle
+        run: uv run --with pyinstaller pyinstaller --name cute --windowed --noconfirm gui.py
+
+      - name: Zip app bundle
+        run: ditto -c -k --sequesterRsrc --keepParent dist/cute.app dist/cute-macos-arm64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cute-macos-arm64
+          path: dist/cute-macos-arm64.zip
